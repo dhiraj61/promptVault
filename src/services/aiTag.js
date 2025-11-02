@@ -1,4 +1,4 @@
-import { GoogleGenAI } from "@google/genai";
+const { GoogleGenAI } = require("@google/genai");
 
 const ai = new GoogleGenAI({});
 

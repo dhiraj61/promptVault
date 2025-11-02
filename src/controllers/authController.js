@@ -63,7 +63,6 @@ const loginController = async (req, res) => {
   const { email, password } = req.body;
 
   const validatedData = loginZodSchema.parse({ email, password });
-  console.log(validatedData);
 
   const validUser = await userModel.findOne({
     email: validatedData.email,
