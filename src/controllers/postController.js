@@ -1,8 +1,12 @@
 const jwt = require("jsonwebtoken");
 const generateTag = require("../services/aiTag");
-const { createPostZodSchema } = require("../validation/promptValidation");
+const {
+  createPostZodSchema,
+  updatePostZodSchema,
+} = require("../validation/promptValidation");
 const prmptModel = require("../models/prmptModel");
 const userModel = require("../models/userModel");
+const { options } = require("../routes/postRoutes");
 
 const createPostController = async (req, res) => {
   const { title, prompt, isPrivate } = req.body;
@@ -55,9 +59,20 @@ const displayPostController = async (req, res) => {
 };
 
 const displayCommunityPostController = async (req, res) => {
-  const posts = await prmptModel.find({
-    isPrivate: false,
-  });
+  const search = req.query.q?.trim() || "";
+  const filter = search
+    ? {
+        isPrivate: false,
+        $or: [
+          { title: { $regex: search, $options: "i" } },
+          { prompt: { $regex: search, $options: "i" } },
+          { tags: { $regex: search, $options: "i" } },
+        ],
+      }
+    : {
+        isPrivate: false,
+      };
+  const posts = await prmptModel.find(filter);
 
   try {
     const postWithUser = await Promise.all(
@@ -85,8 +100,59 @@ const displayCommunityPostController = async (req, res) => {
   }
 };
 
+const updatePrompt = async (req, res) => {
+  try {
+    const promptId = req.params.id;
+    const { title, prompt, isPrivate } = req.body;
+    let tags = await generateTag(prompt);
+    tags = tags.split(",").map((tag) => tag.trim());
+
+    const validatedPromptdata = updatePostZodSchema.parse({
+      title,
+      prompt,
+      tags,
+      isPrivate,
+    });
+
+    const updatedPrompt = await prmptModel.findByIdAndUpdate(
+      promptId,
+      { $set: validatedPromptdata },
+      { new: true }
+    );
+
+    res.status(200).json({
+      message: updatedPrompt,
+    });
+  } catch (error) {
+    res.status(400).json({
+      message: error.message,
+    });
+  }
+};
+
+const deletePrompt = async (req, res) => {
+  try {
+    const promptId = req.params.id;
+    const deleted = await prmptModel.findByIdAndDelete(promptId);
+    if (!deleted) {
+      return res.status(401).json({
+        message: "Not Deleted Try Again",
+      });
+    }
+    res.status(200).json({
+      message: "Deleted Successfully",
+    });
+  } catch (error) {
+    res.status(401).json({
+      message: error.message,
+    });
+  }
+};
+
 module.exports = {
   createPostController,
   displayPostController,
   displayCommunityPostController,
+  updatePrompt,
+  deletePrompt,
 };
