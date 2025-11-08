@@ -100,7 +100,19 @@ const loginController = async (req, res) => {
   });
 };
 
+const logoutController = async (req, res) => {
+  res.clearCookie("token", {
+    httpOnly: true,
+    secure: false,
+    sameSite: "lax",
+  });
+  res.status(200).json({
+    message: "UserLogged Out Successfully",
+  });
+};
+
 module.exports = {
   loginController,
   registerController,
+  logoutController,
 };

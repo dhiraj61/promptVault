@@ -27,6 +27,14 @@ const likePromptController = async (req, res) => {
   });
 };
 
+const userLikeCount = async(req,res) => {
+  const user = req.user
+  const likeCount = await likeModel.countDocuments({userId:user})
+  res.status(200).json({
+    likeCount
+  })
+}
+
 const dislikePromptController = async (req, res) => {
   const user = req.user;
   const promptId = req.params.id;
@@ -49,4 +57,4 @@ const dislikePromptController = async (req, res) => {
   });
 };
 
-module.exports = { likePromptController, dislikePromptController };
+module.exports = { likePromptController, dislikePromptController,userLikeCount };

@@ -49,7 +49,8 @@ const displayPostController = async (req, res) => {
       createdBy: user,
     });
     res.status(200).json({
-      message: prompts,
+      data: prompts,
+      user
     });
   } catch (error) {
     res.status(401).json({
