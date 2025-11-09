@@ -106,8 +106,9 @@ const logoutController = async (req, res) => {
     secure: false,
     sameSite: "lax",
   });
+  
   res.status(200).json({
-    message: "UserLogged Out Successfully",
+    message: "User Logged Out Successfully",
   });
 };
 
