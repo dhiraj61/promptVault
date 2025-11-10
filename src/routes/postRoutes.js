@@ -6,6 +6,7 @@ const {
   displayCommunityPostController,
   updatePrompt,
   deletePrompt,
+  singlePrompt,
 } = require("../controllers/postController");
 const router = express.Router();
 
@@ -14,6 +15,6 @@ router.get("/userPrompt", authMiddleware, displayPostController);
 router.get("/allPrompt", displayCommunityPostController);
 router.patch("/updatePrompt/:id", authMiddleware, updatePrompt);
 router.delete("/deletePrompt/:id", authMiddleware, deletePrompt);
-router.post('/likePrompt/:id',authMiddleware)
+router.get("/singlePrompt/:id", authMiddleware, singlePrompt);
 
 module.exports = router;

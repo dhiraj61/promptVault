@@ -84,15 +84,17 @@ const displayCommunityPostController = async (req, res) => {
         const singlePost = {
           avatar: user.avatar,
           name: user.name,
-          createAt: post.createdAt,
+          createdAt: post.createdAt,
           prompt: post.prompt,
           tags: post.tags,
+          title: post.title,
+          _id:post._id,
         };
         return singlePost;
       })
     );
     res.status(200).json({
-      message: postWithUser,
+      postWithUser,
     });
   } catch (error) {
     res.status(401).json({
@@ -131,6 +133,26 @@ const updatePrompt = async (req, res) => {
   }
 };
 
+
+const singlePrompt = async (req, res) => {
+  try {
+    const promptId = req.params.id;
+    const prompt = await prmptModel.findById(promptId);
+    if (!prompt) {
+      return res.status(401).json({
+        message: "Not Found Try Again",
+      });
+    }
+    res.status(200).json({
+      prompt,
+    });
+  } catch (error) {
+    res.status(401).json({
+      message: error.message,
+    });
+  }
+};
+
 const deletePrompt = async (req, res) => {
   try {
     const promptId = req.params.id;
@@ -156,4 +178,5 @@ module.exports = {
   displayCommunityPostController,
   updatePrompt,
   deletePrompt,
+  singlePrompt
 };

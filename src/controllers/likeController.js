@@ -1,5 +1,6 @@
 const likeModel = require("../models/likeModel");
-const promptModel = require('../models/prmptModel')
+const promptModel = require("../models/prmptModel");
+const userModel = require("../models/userModel");
 const { rawListeners } = require("../models/userModel");
 
 const likePromptController = async (req, res) => {
@@ -47,11 +48,53 @@ const fetchLikeController = async (req, res) => {
   });
 };
 
+const likedPromptController = async (req, res) => {
+  const user = req.user._id;
+  const likedPrompt = await likeModel.find({
+    userId: user,
+  });
+
+  const id = likedPrompt.map((p) => p.promptId);
+
+  const prompts = await promptModel.find({
+    _id: { $in: id },
+  });
+
+  try {
+    const postWithUser = await Promise.all(
+      prompts.map(async (prompt) => {
+        const user = await userModel.findOne({
+          _id: prompt.createdBy,
+        });
+        const singlePost = {
+          avatar: user.avatar,
+          name: user.name,
+          createdAt: prompt.createdAt,
+          prompt: prompt.prompt,
+          tags: prompt.tags,
+          title: prompt.title,
+          _id: prompt._id,
+        };
+        return singlePost;
+      })
+    );
+    res.status(200).json({
+      postWithUser,
+    });
+  } catch (error) {
+    res.status(401).json({
+      message: "No liked Posts",
+    });
+  }
+};
+
 const userLikeCount = async (req, res) => {
   const user = req.user._id;
-  const prompts = await promptModel.find({createdBy:user})
-  const promptIds = prompts.map(p=>p._id)
-  const likeCount = await likeModel.countDocuments({ promptId:{$in:promptIds} });
+  const prompts = await promptModel.find({ createdBy: user });
+  const promptIds = prompts.map((p) => p._id);
+  const likeCount = await likeModel.countDocuments({
+    promptId: { $in: promptIds },
+  });
   res.status(200).json({
     likeCount,
   });
@@ -93,4 +136,5 @@ module.exports = {
   userLikeCount,
   promptLikeCount,
   fetchLikeController,
+  likedPromptController,
 };
