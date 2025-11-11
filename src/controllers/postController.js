@@ -6,6 +6,7 @@ const {
 } = require("../validation/promptValidation");
 const prmptModel = require("../models/prmptModel");
 const userModel = require("../models/userModel");
+const likeModel = require("../models/likeModel");
 const { options } = require("../routes/postRoutes");
 
 const createPostController = async (req, res) => {
@@ -50,7 +51,7 @@ const displayPostController = async (req, res) => {
     });
     res.status(200).json({
       data: prompts,
-      user
+      user,
     });
   } catch (error) {
     res.status(401).json({
@@ -88,7 +89,7 @@ const displayCommunityPostController = async (req, res) => {
           prompt: post.prompt,
           tags: post.tags,
           title: post.title,
-          _id:post._id,
+          _id: post._id,
         };
         return singlePost;
       })
@@ -133,7 +134,6 @@ const updatePrompt = async (req, res) => {
   }
 };
 
-
 const singlePrompt = async (req, res) => {
   try {
     const promptId = req.params.id;
@@ -157,6 +157,9 @@ const deletePrompt = async (req, res) => {
   try {
     const promptId = req.params.id;
     const deleted = await prmptModel.findByIdAndDelete(promptId);
+    await likeModel.deleteOne({
+      promptId: promptId,
+    });
     if (!deleted) {
       return res.status(401).json({
         message: "Not Deleted Try Again",
@@ -178,5 +181,5 @@ module.exports = {
   displayCommunityPostController,
   updatePrompt,
   deletePrompt,
-  singlePrompt
+  singlePrompt,
 };
