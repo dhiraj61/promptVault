@@ -4,6 +4,6 @@ const connectDB = require("./src/config/db");
 
 connectDB();
 
-app.listen(3000, () => {
+app.listen(process.env.CORS_ORIGIN, () => {
   console.log("server running on 3000 port");
 });
