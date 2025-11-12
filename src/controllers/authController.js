@@ -7,113 +7,92 @@ const {
   userZodSchema,
   loginZodSchema,
 } = require("../validation/userValidation");
-const { TurnCoverage } = require("@google/genai");
+
+const generateToken = (id) => {
+  return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: "7d" });
+};
 
 const registerController = async (req, res) => {
-  const { name, email, password } = req.body;
-  const file = req.file;
+  try {
+    const { name, email, password } = req.body;
+    const file = req.file;
 
-  const validatedData = userZodSchema.parse({ name, email, password });
+    const validatedData = userZodSchema.parse({ name, email, password });
 
-  const existingUser = await userModel.findOne({
-    email: validatedData.email,
-  });
-
-  if (existingUser) {
-    return res.status(400).json({
-      message: "email already exist",
+    const existingUser = await userModel.findOne({
+      email: validatedData.email,
     });
-  }
+    if (existingUser)
+      return res.status(400).json({ message: "Email already exists" });
 
-  if (file) {
-    if (!file.mimetype.startsWith("image/")) {
-      return re.status(400).json({
-        message: "Onaly Image allowed",
-      });
+    let imgUrl = "";
+    if (file) {
+      if (!file.mimetype.startsWith("image/")) {
+        return res.status(400).json({ message: "Only image files allowed" });
+      }
+      const result = await uploadFile(file.buffer, nanoid());
+      imgUrl = result.url;
     }
+
+    const hashedPassword = await bcrypt.hash(validatedData.password, 10);
+
+    const user = await userModel.create({
+      name: validatedData.name,
+      email: validatedData.email,
+      password: hashedPassword,
+      avatar: imgUrl,
+    });
+
+    const token = generateToken(user._id);
+
+    res.status(201).json({
+      success: true,
+      message: "User registered successfully",
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        avatar: user.avatar,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
-  const result = await uploadFile(file?.buffer, nanoid());
-  const imgUrl = result.url;
-
-  const hashedPassword = await bcrypt.hash(validatedData.password, 10);
-
-  const user = await userModel.create({
-    name: validatedData.name,
-    email: validatedData.email,
-    password: hashedPassword,
-    avatar: imgUrl,
-  });
-
-  const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
-    expiresIn: "7d",
-  });
-
-  res.cookie("token", token, {
-    httpOnly: true,
-    secure: true,
-    sameSite: "none",
-    path: "/",
-    maxAge: 7 * 24 * 60 * 60 * 1000,
-  });
-
-  res.status(201).json({
-    message: "Usere Created!",
-  });
 };
 
 const loginController = async (req, res) => {
-  const { email, password } = req.body;
+  try {
+    const { email, password } = req.body;
+    const validatedData = loginZodSchema.parse({ email, password });
 
-  const validatedData = loginZodSchema.parse({ email, password });
+    const user = await userModel.findOne({ email: validatedData.email });
+    if (!user) return res.status(401).json({ message: "Invalid credentials" });
 
-  const validUser = await userModel.findOne({
-    email: validatedData.email,
-  });
+    const isMatch = await bcrypt.compare(validatedData.password, user.password);
+    if (!isMatch)
+      return res.status(401).json({ message: "Invalid credentials" });
 
-  if (!validUser) {
-    return res.status(401).json({
-      message: "Invalid Credetials",
+    const token = generateToken(user._id);
+
+    res.status(200).json({
+      success: true,
+      message: "Login successful",
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        avatar: user.avatar,
+      },
     });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
-
-  const checkPassword = await bcrypt.compare(
-    validatedData.password,
-    validUser.password
-  );
-  if (!checkPassword) {
-    return res.status(401).json({
-      message: "Invalid Credetials",
-    });
-  }
-
-  const token = jwt.sign({ id: validUser._id }, process.env.JWT_SECRET, {
-    expiresIn: "7d",
-  });
-
-  res.cookie("token", token, {
-    httpOnly: true,
-    secure: true,
-    sameSite: "none",
-    path: "/",
-    maxAge: 7 * 24 * 60 * 60 * 1000,
-  });
-
-  res.status(201).json({
-    message: "User Logged In!",
-  });
 };
 
 const logoutController = async (req, res) => {
-  res.clearCookie("token", {
-    httpOnly: true,
-    secure: true,
-    sameSite: "none",
-    path: "/",
-  });
-
-  res.status(200).json({
-    message: "User Logged Out Successfully",
-  });
+  res.status(200).json({ message: "Logout successful" });
 };
 
 module.exports = {
