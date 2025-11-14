@@ -46,9 +46,12 @@ const displayPostController = async (req, res) => {
   const user = req.user;
 
   try {
-    const prompts = await prmptModel.find({
-      createdBy: user,
-    });
+    const prompts = await prmptModel
+      .find({
+        createdBy: user,
+      })
+      .sort({ createdAt: -1 })
+      .select("title prompt tags isPrivate");
     res.status(200).json({
       data: prompts,
       user,
@@ -61,39 +64,46 @@ const displayPostController = async (req, res) => {
 };
 
 const displayCommunityPostController = async (req, res) => {
-  const search = req.query.q?.trim() || "";
-  const filter = search
-    ? {
-        isPrivate: false,
-        $or: [
-          { title: { $regex: search, $options: "i" } },
-          { prompt: { $regex: search, $options: "i" } },
-          { tags: { $regex: search, $options: "i" } },
-        ],
-      }
-    : {
-        isPrivate: false,
-      };
-  const posts = await prmptModel.find(filter);
-
   try {
-    const postWithUser = await Promise.all(
-      posts.map(async (post) => {
-        const user = await userModel.findOne({
-          _id: post.createdBy,
-        });
-        const singlePost = {
-          avatar: user.avatar,
-          name: user.name,
-          createdAt: post.createdAt,
-          prompt: post.prompt,
-          tags: post.tags,
-          title: post.title,
-          _id: post._id,
-        };
-        return singlePost;
-      })
-    );
+    const search = req.query.q?.trim();
+
+    let postWithUser = [];
+    if (search) {
+      postWithUser = await prmptModel
+        .find({ isPrivate: false, $text: { $search: search } })
+        .sort(
+          search
+            ? { score: { $meta: "textScore" }, createdAt: -1 }
+            : { createdAt: -1 }
+        )
+        .select("_id title prompt tags createdAt createdBy isPrivate")
+        .populate("createdBy", "avatar name")
+        .lean();
+    } else {
+      postWithUser = await prmptModel
+        .find({ isPrivate: false })
+        .sort({ createdAt: -1 })
+        .select("_id title prompt tags createdAt createdBy isPrivate")
+        .populate("createdBy", "avatar name")
+        .lean();
+    }
+
+    if (postWithUser.length === 0 && search) {
+      postWithUser = await prmptModel
+        .find({
+          isPrivate: false,
+          $or: [
+            { title: { $regex: search, $options: "i" } },
+            { prompt: { $regex: search, $options: "i" } },
+            { tags: { $regex: search, $options: "i" } },
+          ],
+        })
+        .sort({ createdAt: -1 })
+        .select("_id title prompt tags createdAt createdBy isPrivate")
+        .populate("createdBy", "avatar name")
+        .lean();
+    }
+
     res.status(200).json({
       postWithUser,
     });

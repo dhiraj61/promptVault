@@ -27,6 +27,7 @@ const likePromptController = async (req, res) => {
 
   res.status(200).json({
     likeCount,
+    isLiked:true
   });
 };
 
@@ -127,6 +128,7 @@ const dislikePromptController = async (req, res) => {
 
   res.status(200).json({
     likeCount,
+    isLiked:false
   });
 };
 

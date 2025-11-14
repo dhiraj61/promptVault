@@ -21,12 +21,16 @@ const promptSchema = new mongoose.Schema(
     },
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+      ref: "user",
       required: true,
     },
   },
   { timestamps: true }
 );
+
+promptSchema.index({title:"text",prompt:"text",tags:"text"})
+promptSchema.index({createdBy:1,createdAt:-1})
+promptSchema.index({createdAt:-1})
 
 const prompt = mongoose.model("prompt", promptSchema);
 
